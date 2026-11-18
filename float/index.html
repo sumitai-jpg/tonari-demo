@@ -43,6 +43,7 @@
   .legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:10px;color:#8B8073;margin-top:9px;padding-top:8px;border-top:1px solid #EAE2D3}
   .legend b{font-weight:400;color:#5E4E68;font-size:11px;margin-right:3px}
   .legend span{display:inline-flex;align-items:center}
+  .diag{margin-top:7px;font-size:9.5px;color:#A0968A;letter-spacing:.02em;font-variant-numeric:tabular-nums}
 
   /* ---- 常駐窓 ---- */
   .win{position:fixed;left:0;top:0;width:var(--w,392px);height:329px;background:var(--card);
@@ -140,6 +141,7 @@
     <div class="seg" id="seg"><button data-w="392" class="on">392</button><button data-w="440">440</button></div>
   </div>
   <div class="legend"><span><b>✓</b>原文一致</span><span><b>▤</b>出典</span><span><b>⤢</b>全画面</span><span><b>↻</b>再試行</span></div>
+  <div class="diag" id="diag">窓 —</div>
 </div>
 
 <div class="win" id="win">
@@ -173,7 +175,7 @@
   var win=$('win'), head=$('head'), shot=$('shot'), ph=$('ph'), badge=$('badge'),
       taskMain=$('taskMain'), taskSub=$('taskSub'), lab=$('lab'), concl=$('concl'),
       chips=$('chips'), rows=$('rows'), pill=$('pill'), pillText=$('pillText'),
-      go=$('go'), urlIn=$('url'), qIn=$('q'), body=document.body;
+      go=$('go'), urlIn=$('url'), qIn=$('q'), diag=$('diag'), body=document.body;
 
   var W=392, pos={x:0,y:0}, full=false, band=false, es=null, frames=0, running=false;
 
@@ -195,6 +197,10 @@
     body.dataset.winY = Math.round(pos.y);
     body.dataset.winW = Math.round(win.getBoundingClientRect().width);
     body.dataset.winH = Math.round(win.getBoundingClientRect().height);
+    var r = win.getBoundingClientRect();
+    diag.textContent = '窓 ' + Math.round(r.width) + '×' + Math.round(r.height)
+      + ' ・ 位置 ' + Math.round(r.left) + ',' + Math.round(r.top)
+      + ' ・ 受信 ' + frames + '枚';
   }
   function park(){
     var h = band ? BAND : H;
@@ -315,6 +321,7 @@
       shot.src='data:image/jpeg;base64,'+d.jpeg;
       shot.style.display='block'; ph.style.display='none';
       frames++; body.dataset.frames=frames;
+      if(frames % 10 === 1) place();
     });
     es.addEventListener('status', function(e){
       var d=JSON.parse(e.data);

@@ -247,13 +247,21 @@
   head.addEventListener('pointercancel', endDrag);
   window.addEventListener('resize', function(){ clamp(); place(); });
 
+  /* ---------- 結論の行数フィット ---------- */
+  // 帯（112px）では2行まで。1行に収まるかを文字数で判定する（幅依存の決め打ちをやめる）
+  function fitConcl(){
+    var cp = Math.max(12, Math.floor((W - 26) / 11)); // 11px時の1行あたり文字数の目安
+    var len = (concl.textContent || '').length;
+    win.classList.toggle('long', len > cp);
+  }
+
   /* ---------- LIVE 表示の入/切（帯に畳む） ---------- */
   function setBand(on){
     band=on;
     win.classList.toggle('band', on);
     pill.classList.toggle('off', on);
     pillText.textContent = on ? 'LIVE OFF' : 'LIVE';
-    win.classList.toggle('long', W<420 && concl.textContent.length > 46);
+    fitConcl();
     clamp(); place();
     body.dataset.band = on ? '1' : '0';
   }
@@ -359,7 +367,7 @@
       }));
       task('終わりました', d.siteCount+'サイト・'+Math.round(d.ms/1000)+'秒・'+d.frames+'枚');
       badge.textContent='最終';
-      win.classList.toggle('long', W<420 && (d.answer||'').length>46);
+      fitConcl();
       body.dataset.answerLen=(d.answer||'').length;
       place();
     });
@@ -388,6 +396,7 @@
     W=Number(b.dataset.w);
     [].forEach.call(seg.querySelectorAll('button'), function(x){ x.classList.toggle('on', x===b); });
     win.style.setProperty('--w', W+'px');
+    fitConcl();
     park();
     body.dataset.w=W;
   });

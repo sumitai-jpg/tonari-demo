@@ -90,9 +90,10 @@
   .lab{font-size:8.5px;letter-spacing:.18em;color:#9A8F80;font-weight:700}
   .concl{font-size:12px;line-height:1.45;font-weight:700;color:#1F1B17;overflow:hidden;
          display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-  /* 結論が3行以上要るときは行を出さない（行が途中で切れるのを防ぐ）。全画面では常に出す */
-  .win.norows .rows{display:none}
-  .win.full.norows .rows{display:flex}
+  /* 329pxに チップ と 行 は同時に入らない。窓ではチップ、内訳は全画面で読む。
+     実行中（チップなし）は進行の行を2行だけ出す（3行目以降は全画面）。 */
+  .win.haschips:not(.full) .rows{display:none}
+  .win:not(.full) .rows{max-height:28px}
   .chips{display:flex;gap:4px;flex-wrap:wrap}
   .chip{display:inline-flex;align-items:center;gap:3px;font-size:9px;padding:2px 7px;border-radius:999px;
         background:#F7F2E8;border:1px solid #E9E0D0;color:#6E6355;white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -258,7 +259,6 @@
     var len = (concl.textContent || '').length;
     var lines = Math.ceil(len / cp);
     win.classList.toggle('long', lines > 1);     // 帯では2行まで使う
-    win.classList.toggle('norows', lines > 2);   // 329では結論を優先し、行は畳む
   }
 
   /* ---------- LIVE 表示の入/切（帯に畳む） ---------- */
@@ -304,6 +304,7 @@
       var b=document.createElement('span'); b.className='chip';
       b.innerHTML='<b class="sy">▤</b>'+sources; chips.appendChild(b);
     }
+    win.classList.toggle('haschips', chips.children.length > 0);
   }
   function renderRows(list){
     rows.innerHTML='';

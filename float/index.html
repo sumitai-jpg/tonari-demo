@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TONARI · 常駐窓</title>
+<style>
+  :root{--cream:#F9F6EF;--card:#FEFDFC;--ink:#241F19;--line:#E7DECD}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;overflow:hidden;color:var(--ink);background:#EFE9DE;
+       font-family:"Zen Maru Gothic",-apple-system,"Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;
+       -webkit-font-smoothing:antialiased}
+
+  /* ---- 下の机（仕事の画面） ---- */
+  .desk{position:absolute;inset:0;background:radial-gradient(130% 110% at 18% -10%,#F8F3E8,#EAE2D3 68%,#E1D7C4)}
+  .app{position:absolute;left:44px;top:40px;width:min(1060px,calc(100% - 150px));height:calc(100% - 96px);
+       background:#FFFDF8;border:1px solid #E8DFD0;border-radius:14px;box-shadow:0 22px 54px rgba(58,42,26,.12);
+       display:flex;flex-direction:column;overflow:hidden}
+  .bar{height:36px;display:flex;align-items:flex-end;gap:5px;padding:0 12px;background:#F3EDE1;border-bottom:1px solid #E4DAC8;flex:none}
+  .tab{font-size:10.5px;color:#8A7F70;padding:5px 12px;border-radius:7px 7px 0 0;background:#EAE3D5}
+  .tab.on{background:#FFFDF8;color:#3A332B}
+  .sheet{padding:18px 24px;overflow:hidden}
+  .sheet h4{font-size:12px;color:#6B6155;font-weight:700;margin:0 0 12px}
+  .sheet table{width:100%;border-collapse:collapse;font-size:11.5px;color:#7A6F61}
+  .sheet th{text-align:left;font-weight:500;color:#A99C89;font-size:10px;padding:6px 8px;border-bottom:1px solid #EAE2D3}
+  .sheet td{padding:7px 8px;border-bottom:1px solid #F1EBDD}
+  .sheet td.n{text-align:right;font-variant-numeric:tabular-nums}
+
+  /* ---- 操作カード ---- */
+  .ctl{position:fixed;left:28px;top:28px;width:326px;background:var(--cream);border:1px solid #E4DAC8;
+       border-radius:14px;padding:13px 14px 11px;box-shadow:0 10px 26px rgba(58,42,26,.10);z-index:40}
+  .ctl-h{font-size:9px;letter-spacing:.2em;font-weight:700;color:#9A8F80;margin-bottom:8px}
+  .ctl input{width:100%;border:1px solid #E2DCD0;background:#FEFDFC;border-radius:9px;padding:9px 10px;
+             font:inherit;font-size:12px;color:var(--ink);margin-bottom:7px}
+  .ctl-row{display:flex;align-items:center;gap:8px;margin-top:2px}
+  .ctl button{border:0;border-radius:9px;padding:9px 15px;font:inherit;font-size:12px;font-weight:700;
+              background:#1F1B17;color:#FFFDF8;cursor:pointer}
+  .ctl button.stop{background:#fff;color:#1F1B17;box-shadow:inset 0 0 0 1px #E2DCD0}
+  .seg{margin-left:auto;display:flex;border:1px solid #E2DCD0;border-radius:9px;overflow:hidden;background:#FEFDFC}
+  .seg button{background:transparent;color:#9A8F80;border-radius:0;padding:7px 10px;font-size:11px;font-weight:600}
+  .seg button.on{background:#EFE7DA;color:#3A332B}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:10px;color:#8B8073;margin-top:9px;padding-top:8px;border-top:1px solid #EAE2D3}
+  .legend b{font-weight:400;color:#5E4E68;font-size:11px;margin-right:3px}
+  .legend span{display:inline-flex;align-items:center}
+
+  /* ---- 常駐窓 ---- */
+  .win{position:fixed;left:0;top:0;width:var(--w,392px);height:329px;background:var(--card);
+       border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 44px rgba(58,42,26,.22);
+       display:flex;flex-direction:column;overflow:hidden;z-index:60;
+       transition:height .18s ease,width .18s ease,left .18s ease,top .18s ease,box-shadow .18s ease}
+  .win.drag{transition:none;box-shadow:0 26px 62px rgba(58,42,26,.30)}
+  .win.band{height:112px}
+  .win.full{height:calc(100vh - 48px);width:calc(100vw - 48px)}
+
+  .head{height:36px;flex:none;display:flex;align-items:center;gap:7px;padding:0 11px;
+        background:linear-gradient(#FFFDFA,#FCF8F0);border-bottom:1px solid #EFE7DA;cursor:grab;user-select:none;touch-action:none}
+  .win.full .head{cursor:default}
+  .dots{display:flex;gap:3px}
+  .dots i{width:5px;height:5px;border-radius:50%;background:#D9CDBA;display:block}
+  .name{font-size:10px;letter-spacing:.16em;font-weight:700;color:#4A4137}
+  .right{margin-left:auto;display:flex;align-items:center;gap:7px}
+  .pill{display:inline-flex;align-items:center;gap:4px;font:inherit;font-size:8px;letter-spacing:.14em;font-weight:700;
+        color:#7A5E52;background:#fff;border:1px solid #E6DBC9;border-radius:999px;padding:2px 7px;cursor:pointer}
+  .pill i{width:5px;height:5px;border-radius:50%;background:#C8553D;display:block}
+  .pill.off{color:#9A8F80}
+  .pill.off i{background:transparent;border:1px solid #B7AA97}
+  .ic{width:20px;height:20px;display:grid;place-items:center;border:0;background:transparent;color:#9A8F80;cursor:pointer;padding:0;border-radius:5px}
+  .ic:hover{background:#F3ECE0;color:#5E4E68}
+  .ic svg{width:13px;height:13px;display:block}
+
+  .task{height:40px;flex:none;display:flex;flex-direction:column;justify-content:center;gap:1px;
+        padding:0 12px;border-bottom:1px solid #F3ECE0;background:var(--card);overflow:hidden}
+  .task b{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .task span{font-size:9.5px;color:#9A8F80;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .live{position:relative;height:160px;flex:none;background:#EFE9DE;overflow:hidden}
+  .win.full .live{height:auto;flex:1}
+  .stage{position:absolute;left:9px;right:9px;top:8px;bottom:0;background:#fff;border:1px solid #E7DFD2;
+         border-radius:6px 6px 0 0;overflow:hidden}
+  .stage img{width:100%;height:100%;object-fit:cover;object-position:top center;display:none}
+  .win.full .stage img{object-fit:contain}
+  .ph{position:absolute;inset:0;display:grid;place-items:center;font-size:9.5px;color:#A99C89;text-align:center;padding:0 20px;line-height:1.7}
+  .badge{position:absolute;right:9px;top:8px;font-size:8px;background:rgba(31,27,23,.7);color:#FFFDF8;
+         padding:2px 6px;border-radius:999px;letter-spacing:.06em;font-variant-numeric:tabular-nums}
+
+  .result{flex:1;min-height:0;padding:9px 12px 10px;display:flex;flex-direction:column;gap:5px;overflow:hidden}
+  .lab{font-size:8.5px;letter-spacing:.18em;color:#9A8F80;font-weight:700}
+  .concl{font-size:12px;line-height:1.45;font-weight:700;color:#1F1B17;overflow:hidden;
+         display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical}
+  .chips{display:flex;gap:4px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:3px;font-size:9px;padding:2px 7px;border-radius:999px;
+        background:#F7F2E8;border:1px solid #E9E0D0;color:#6E6355;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .chip.a{background:#F0E9F2;border-color:#DCCFE1;color:#5E4E68}
+  .chip .sy{font-size:9.5px;line-height:1;letter-spacing:0}
+  .rows{display:flex;flex-direction:column;gap:3px;overflow:hidden;margin-top:1px}
+  .row{display:flex;align-items:baseline;gap:6px;font-size:10px;color:#4A4137;min-width:0}
+  .row i{font-style:normal;font-size:9px;width:10px;flex:none;color:#9A8F80}
+  .row i.ok{color:#4F7A5A}
+  .row i.ng{color:#B4533F}
+  .row span{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
+  .win.band .task,.win.band .live,.win.band .rows{display:none}
+  .win.band .result{justify-content:center;padding:7px 12px 8px;gap:4px}
+  .win.band .concl{font-size:11.5px;-webkit-line-clamp:1}
+  .win.band.long .concl{-webkit-line-clamp:2;line-height:1.35}
+  .win.full .result{flex:none;padding:12px 16px 14px}
+  .win.full .concl{font-size:15px;-webkit-line-clamp:3}
+  .win.full .row{font-size:12px}
+</style>
+</head>
+<body>
+<div class="desk"></div>
+<div class="app">
+  <div class="bar"><span class="tab">請求書ドラフト</span><span class="tab">メモ</span><span class="tab on">売上管理_11月.xlsx</span></div>
+  <div class="sheet">
+    <h4>11月 売上</h4>
+    <table>
+      <tr><th>日付</th><th>取引先</th><th class="n">金額</th><th class="n">状態</th></tr>
+      <tr><td>11/04</td><td>株式会社アオイ</td><td class="n">182,000</td><td class="n">入金済</td></tr>
+      <tr><td>11/07</td><td>山の手商店</td><td class="n">54,000</td><td class="n">未入金</td></tr>
+      <tr><td>11/11</td><td>株式会社ミナト</td><td class="n">320,000</td><td class="n">入金済</td></tr>
+      <tr><td>11/14</td><td>有限会社ソラ</td><td class="n">96,000</td><td class="n">請求中</td></tr>
+      <tr><td>11/17</td><td>株式会社ハル</td><td class="n">212,000</td><td class="n">未入金</td></tr>
+      <tr><td>11/18</td><td>株式会社アオイ</td><td class="n">140,000</td><td class="n">予定</td></tr>
+      <tr><td>11/21</td><td>みなみ工務店</td><td class="n">78,000</td><td class="n">予定</td></tr>
+      <tr><td>11/24</td><td>株式会社ミナト</td><td class="n">260,000</td><td class="n">予定</td></tr>
+      <tr><td>11/27</td><td>山の手商店</td><td class="n">54,000</td><td class="n">予定</td></tr>
+      <tr><td>11/30</td><td>株式会社ハル</td><td class="n">180,000</td><td class="n">予定</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="ctl">
+  <div class="ctl-h">任せる</div>
+  <input id="url" value="https://spiritt.ai" spellcheck="false" autocapitalize="off" autocorrect="off">
+  <input id="q" value="料金プランを教えて">
+  <div class="ctl-row">
+    <button id="go">開始</button>
+    <div class="seg" id="seg"><button data-w="392" class="on">392</button><button data-w="440">440</button></div>
+  </div>
+  <div class="legend"><span><b>✓</b>原文一致</span><span><b>▤</b>出典</span><span><b>⤢</b>全画面</span><span><b>↻</b>再試行</span></div>
+</div>
+
+<div class="win" id="win">
+  <div class="head" id="head">
+    <span class="dots"><i></i><i></i><i></i></span>
+    <span class="name">TONARI</span>
+    <span class="right">
+      <button class="pill" id="pill" title="ライブ表示の入/切"><i></i><span id="pillText">LIVE</span></button>
+      <button class="ic" id="reset" title="右下に戻す"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M4 1.5h8.5V10M10 12.5H1.5V4"/></svg></button>
+      <button class="ic" id="full" title="全画面"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1.5 5V1.5H5M9 1.5h3.5V5M12.5 9v3.5H9M5 12.5H1.5V9"/></svg></button>
+    </span>
+  </div>
+  <div class="task"><b id="taskMain">まだ動いていません</b><span id="taskSub">「開始」を押すと、隣でブラウザが動きます</span></div>
+  <div class="live" id="live">
+    <div class="stage"><img id="shot" alt="AIのブラウザのライブ映像"><div class="ph" id="ph">ライブはここに流れます</div></div>
+    <span class="badge" id="badge">-</span>
+  </div>
+  <div class="result">
+    <span class="lab" id="lab">結論</span>
+    <div class="concl" id="concl">—</div>
+    <div class="chips" id="chips"></div>
+    <div class="rows" id="rows"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var API='https://solene-0e598278.base44.app/functions/agentRun';
+  var H=329, BAND=112;
+  var $=function(id){return document.getElementById(id);};
+  var win=$('win'), head=$('head'), shot=$('shot'), ph=$('ph'), badge=$('badge'),
+      taskMain=$('taskMain'), taskSub=$('taskSub'), lab=$('lab'), concl=$('concl'),
+      chips=$('chips'), rows=$('rows'), pill=$('pill'), pillText=$('pillText'),
+      go=$('go'), urlIn=$('url'), qIn=$('q'), body=document.body;
+
+  var W=392, pos={x:0,y:0}, full=false, band=false, es=null, frames=0, running=false;
+
+  /* ---------- 窓の位置と大きさ ---------- */
+  function clamp(){
+    var w = full ? window.innerWidth-48 : W;
+    var h = full ? window.innerHeight-48 : (band ? BAND : H);
+    var maxX = window.innerWidth - w - 8, maxY = window.innerHeight - h - 8;
+    if(pos.x > maxX) pos.x = maxX;
+    if(pos.y > maxY) pos.y = maxY;
+    if(pos.x < 8) pos.x = 8;
+    if(pos.y < 8) pos.y = 8;
+  }
+  function place(){
+    if(full){ pos.x = 24; pos.y = 24; }
+    win.style.left = pos.x+'px';
+    win.style.top = pos.y+'px';
+    body.dataset.winX = Math.round(pos.x);
+    body.dataset.winY = Math.round(pos.y);
+    body.dataset.winW = Math.round(win.getBoundingClientRect().width);
+    body.dataset.winH = Math.round(win.getBoundingClientRect().height);
+  }
+  function park(){
+    var h = band ? BAND : H;
+    pos.x = window.innerWidth - W - 26;
+    pos.y = window.innerHeight - h - 26;
+    clamp(); place();
+  }
+  function save(){ try{ localStorage.setItem('tonari.win', JSON.stringify(pos)); }catch(e){} }
+  function load(){
+    try{
+      var s=JSON.parse(localStorage.getItem('tonari.win')||'null');
+      if(s && typeof s.x==='number'){ pos=s; clamp(); place(); return true; }
+    }catch(e){}
+    return false;
+  }
+
+  /* ---------- ドラッグ ---------- */
+  var drag=null;
+  head.addEventListener('pointerdown', function(e){
+    if(full) return;
+    if(e.target.closest('button')) return;
+    drag={dx:e.clientX-pos.x, dy:e.clientY-pos.y};
+    win.classList.add('drag');
+    try{ head.setPointerCapture(e.pointerId); }catch(_){}
+    body.dataset.dragging='1';
+  });
+  head.addEventListener('pointermove', function(e){
+    if(!drag) return;
+    pos.x=e.clientX-drag.dx; pos.y=e.clientY-drag.dy;
+    clamp(); place();
+  });
+  function endDrag(){
+    if(!drag) return;
+    drag=null; win.classList.remove('drag');
+    body.dataset.dragging='0';
+    save();
+  }
+  head.addEventListener('pointerup', endDrag);
+  head.addEventListener('pointercancel', endDrag);
+  window.addEventListener('resize', function(){ clamp(); place(); });
+
+  /* ---------- LIVE 表示の入/切（帯に畳む） ---------- */
+  function setBand(on){
+    band=on;
+    win.classList.toggle('band', on);
+    pill.classList.toggle('off', on);
+    pillText.textContent = on ? 'LIVE OFF' : 'LIVE';
+    win.classList.toggle('long', W<420 && concl.textContent.length > 46);
+    clamp(); place();
+    body.dataset.band = on ? '1' : '0';
+  }
+
+  pill.addEventListener('click', function(){
+    if(full) return;
+    setBand(!band);
+  });
+
+  /* ---------- 全画面 ---------- */
+  $('full').addEventListener('click', function(){
+    full=!full;
+    win.classList.toggle('full', full);
+    if(full && band) setBand(false);
+    if(!full) park();
+    place();
+    body.dataset.full = full ? '1' : '0';
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape' && full){ $('full').click(); }
+  });
+  $('reset').addEventListener('click', function(){ full=false; win.classList.remove('full'); park(); });
+
+  /* ---------- 描画 ---------- */
+  function setState(s){ body.dataset.state=s; }
+  function task(main, sub){ taskMain.textContent=main; if(sub!=null) taskSub.textContent=sub; }
+  function renderChips(matched, total, sources){
+    chips.innerHTML='';
+    if(matched!=null){
+      var a=document.createElement('span'); a.className='chip a';
+      a.innerHTML='<b class="sy">✓</b>'+(matched+'/'+total); chips.appendChild(a);
+    }
+    if(sources!=null){
+      var b=document.createElement('span'); b.className='chip';
+      b.innerHTML='<b class="sy">▤</b>'+sources; chips.appendChild(b);
+    }
+  }
+  function renderRows(list){
+    rows.innerHTML='';
+    for(var i=0;i<list.length && i<3;i++){
+      var d=list[i], r=document.createElement('div'); r.className='row';
+      var ic=document.createElement('i'); ic.className=d.ok?'ok':'ng'; ic.textContent=d.ok?'✓':'✕';
+      var s=document.createElement('span'); s.textContent=d.text;
+      r.appendChild(ic); r.appendChild(s); rows.appendChild(r);
+    }
+  }
+
+  /* ---------- 実行 ---------- */
+  function stop(){
+    if(es){ es.close(); es=null; }
+    running=false; go.textContent='開始'; go.classList.remove('stop');
+    if(concl.textContent==='—') concl.textContent='止めました。';
+  }
+  function start(){
+    var target=(urlIn.value||'').trim(), question=(qIn.value||'').trim();
+    if(!target) return;
+    if(es){ es.close(); es=null; }
+    frames=0; running=true; go.textContent='停止'; go.classList.add('stop');
+    setState('running'); setBand(false);
+    shot.style.display='none'; ph.style.display='block'; ph.textContent='ブラウザを起動しています…';
+    badge.textContent='-';
+    lab.textContent='いま'; concl.textContent='ブラウザを起動しています'; renderChips(null); renderRows([]);
+    task('ブラウザを起動しています','AIのブラウザに繋いでいます');
+
+    var q=API+'?url='+encodeURIComponent(target)+'&q='+encodeURIComponent(question);
+    es=new EventSource(q);
+
+    es.addEventListener('frame', function(e){
+      var d=JSON.parse(e.data);
+      shot.src='data:image/jpeg;base64,'+d.jpeg;
+      shot.style.display='block'; ph.style.display='none';
+      frames++; body.dataset.frames=frames;
+    });
+    es.addEventListener('status', function(e){
+      var d=JSON.parse(e.data);
+      if(d.label){
+        task(d.label, d.url ? d.url : (d.step==='session'?'AIのブラウザに繋いでいます':''));
+        if(!band){ concl.textContent=d.label; }
+      }
+      if(d.i!=null) badge.textContent=(d.i+1)+'/';
+    });
+    es.addEventListener('site', function(e){
+      var d=JSON.parse(e.data);
+      var name=d.title||d.url||'';
+      var r=document.createElement('div'); r.className='row';
+      var ic=document.createElement('i'); ic.className=d.matched>0?'ok':'ng'; ic.textContent=d.matched>0?'✓':'✕';
+      var s=document.createElement('span'); s.textContent=name+' · '+d.matched+'/'+(d.claims?d.claims.length:0);
+      r.appendChild(ic); r.appendChild(s); rows.insertBefore(r, rows.firstChild);
+      task(name||'読み取り', d.chars+'文字を読み取りました');
+      body.dataset.lastMatched=d.matched;
+      body.dataset.lastClaims=(d.claims?d.claims.length:0);
+    });
+    es.addEventListener('result', function(e){
+      var d=JSON.parse(e.data);
+      lab.textContent='結論';
+      concl.textContent=d.answer||'—';
+      var total=0, matched=0;
+      (d.sites||[]).forEach(function(s){ total+=(s.claims||[]).length; matched+=(s.matched||0); });
+      renderChips(matched,total,(d.sites||[]).length);
+      renderRows((d.sites||[]).map(function(s){
+        return {ok:s.matched>0, text:(s.title||s.url)+' · '+s.matched+'/'+((s.claims||[]).length)};
+      }));
+      task('終わりました', d.siteCount+'サイト・'+Math.round(d.ms/1000)+'秒・'+d.frames+'枚');
+      badge.textContent='最終';
+      win.classList.toggle('long', W<420 && (d.answer||'').length>46);
+      body.dataset.answerLen=(d.answer||'').length;
+    });
+    es.addEventListener('done', function(){
+      setState('done'); running=false; go.textContent='開始'; go.classList.remove('stop');
+      if(es){ es.close(); es=null; }
+    });
+    es.onerror=function(){
+      if(running){
+        task('中断しました','通信が切れました。もう一度「開始」で再試行できます');
+        lab.textContent='結論'; concl.textContent='取得できませんでした。';
+        setState('error');
+      }
+      running=false; go.textContent='開始'; go.classList.remove('stop');
+      if(es){ es.close(); es=null; }
+    };
+  }
+
+  go.addEventListener('click', function(){ running ? stop() : start(); });
+
+  /* ---------- 幅の切り替え（392 / 440） ---------- */
+  var seg=$('seg');
+  seg.addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    W=Number(b.dataset.w);
+    [].forEach.call(seg.querySelectorAll('button'), function(x){ x.classList.toggle('on', x===b); });
+    win.style.setProperty('--w', W+'px');
+    park();
+    body.dataset.w=W;
+  });
+
+  /* ---------- 初期配置 ---------- */
+  win.style.setProperty('--w', '392px');
+  body.dataset.w='392';
+  body.dataset.state='idle';
+  body.dataset.band='0';
+  body.dataset.full='0';
+  body.dataset.frames='0';
+  if(!load()) park();
+  place();
+})();
+</script>
+</body>
+</html>

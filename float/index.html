@@ -410,6 +410,18 @@
   body.dataset.frames='0';
   if(!load()) park();
   place();
+
+  /* ---------- 見本の結論（課金なしで幅を比べるため） ---------- */
+  // ?demo=long で、長い結論＋チップの状態をそのまま出す。ライブは起動しない。
+  if(new URLSearchParams(location.search).get('demo')==='long'){
+    lab.textContent='結論';
+    concl.textContent='SPIRITTは既存のAIサブスクリプションを連携して利用できるほか、一部の外部サービスについては従量課金制（Pay per use）で提供されています。';
+    renderChips(2,2,1);
+    renderRows([{ok:true,text:'SPIRITT | The Way to Turn Any Vision into Reality · 2/2'}]);
+    task('終わりました','1サイト・6秒・51枚');
+    badge.textContent='最終';
+    fitConcl(); place();
+  }
 })();
 </script>
 </body>
